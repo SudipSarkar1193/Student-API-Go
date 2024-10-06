@@ -7,14 +7,41 @@ import (
 )
 
 type Response struct {
-	Data             interface{} `json:"data,omitempty"`             // Optional
-	Message          string      `json:"message"`                    // Mandatory
-	StatusCode       int         `json:"statusCode"`                 // Mandatory
-	IsError          bool        `json:"isError"`                    // Mandatory
-	ErrorCode        int         `json:"errorCode"`                  // Optional
-	ErrorMessage     string      `json:"errorMessage"`               // Optional
-	DeveloperMessage string      `json:"developerMessage,omitempty"` // Optional
-	UserMessage      string      `json:"userMessage,omitempty"`      // Optional
+	Data             interface{} `json:"data,omitempty"`
+	Message          string      `json:"message"`
+	StatusCode       int         `json:"statusCode"`
+	IsError          bool        `json:"isError"`
+	ErrorMessage     string      `json:"errorMessage"`
+	DeveloperMessage string      `json:"developerMessage,omitempty"`
+	UserMessage      string      `json:"userMessage,omitempty"`
+}
+
+func CreateResponse(data interface{}, statusCode int, msg string, options ...interface{}) Response {
+	response := Response{
+		Data:       data,
+		Message:    msg,
+		StatusCode: statusCode,
+	}
+
+	if len(options) > 0 {
+		for _, opt := range options {
+			switch v := opt.(type) {
+			case bool: // isError flag
+				response.IsError = v
+			case string: // ErrorMessage, DeveloperMessage, or UserMessage
+				// Here, you can apply more logic to decide which string this is, if needed
+				if response.IsError {
+					response.ErrorMessage = v
+				} else if response.DeveloperMessage == "" {
+					response.DeveloperMessage = v
+				} else {
+					response.UserMessage = v
+				}
+			}
+		}
+	}
+
+	return response
 }
 
 func WriteResponse(w http.ResponseWriter, res interface{}) error {

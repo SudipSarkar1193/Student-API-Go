@@ -1,16 +1,16 @@
 const fn = async () => {
     const student = {
         id: Math.floor(Math.random() * 1000), // Random ID between 0 and 999
-        fulName: `Student ${Math.floor(Math.random() * 100)}`, // Random name
+        fullName: `Student ${Math.floor(Math.random() * 100)}`, // Random name
         email: `student${Math.floor(Math.random() * 100)}@example.com` // Random email
     };
     
     try {
         const response = await fetch("http://127.0.0.1:5000/api/students", {
             method: "POST",
-            // headers: {
-            //     "Content-Type": "application/json" // Specify that we are sending JSON
-            // },
+            headers: {
+                "Content-Type": "application/json" // Specify that we are sending JSON
+            },
             body: JSON.stringify(student), 
         });
 
@@ -22,7 +22,13 @@ const fn = async () => {
             console.log("------------------------")
             console.log("response.headers => ",response.headers)
             console.log("------------------------")
+
+            console.log("contentType",contentType)
+            console.log("contentType.includes(application/json)",contentType.includes("application/json"))
+
             if (contentType && contentType.includes("application/json")) {
+
+                //⭐⭐ Bcz if I'm direcly sending a text response from Go backend using http.Error() function , the conten-type will be "text/plain; charset=utf-8" not application/json 
 
                 const errorData = await response.json();
                 console.log("errorData =>",errorData)

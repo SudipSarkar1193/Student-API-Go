@@ -9,6 +9,8 @@ import (
 
 	"github.com/SudipSarkar1193/students-API-Go/internal/types"
 	"github.com/SudipSarkar1193/students-API-Go/internal/utils/response"
+
+	"github.com/go-playground/validator/v10"
 )
 
 func New() http.HandlerFunc {
@@ -38,57 +40,41 @@ func New() http.HandlerFunc {
 			if errors.Is(err, io.EOF) {
 				//io.EOF is a sentinel error in Go that indicates the end of input (end of a file or stream), commonly returned by functions when there is no more data to read.
 
-				emptyResponse := response.Response{
-					Data:         nil, // No data to return
-					Message:      "there is no more data to read ",
-					ErrorMessage: fmt.Sprintf("no data to read: %v", err),
-					StatusCode:   http.StatusBadRequest, // 400
-					ErrorCode:    http.StatusNoContent,  // 204
-					IsError:      true,
-				}
-
-				response.WriteResponse(w, emptyResponse)
-
+				http.Error(w, fmt.Sprintf("no data to read: %v", err), http.StatusBadRequest)
 				return
+
 			} else {
 				// Handle other decoding errors
-				emptyResponse := response.Response{
-					Data:         nil,
-					Message:      "invalid request body",
-					ErrorMessage: fmt.Sprintf("failed to decode JSON: %v", err),
-					StatusCode:   http.StatusBadRequest,
-					ErrorCode:    http.StatusBadRequest,
-					IsError:      true,
-				}
-				response.WriteResponse(w, emptyResponse)
+
+				http.Error(w, fmt.Sprintf("failed to decode JSON: %v", err), http.StatusInternalServerError)
 				return
 			}
 		}
 
 		// Validate that all fields are filled
-		if student.Id == 0 || student.Name == "" || student.Email == "" {
-			emptyResponse := response.Response{
-				Data:         nil,
-				Message:      "all fields are required",
-				ErrorMessage: "id, name, and email must be filled",
-				StatusCode:   http.StatusBadRequest,
-				ErrorCode:    http.StatusBadRequest,
-				IsError:      true,
+		// if student.Id == 0 || student.Name == "" || student.Email == "" {
+		// 	http.Error(w, "all fields are required !", http.StatusBadRequest)
+		// 	return
+
+		// }
+
+		var validate *validator.Validate
+
+		validate = validator.New(validator.WithRequiredStructEnabled())
+
+		if err := validate.Struct(&student); err != nil {
+			if _, ok := err.(*validator.InvalidValidationError); ok {
+				fmt.Println(err)
+				return
 			}
-			response.WriteResponse(w, emptyResponse)
 
+			response.ValidateResponse(w, err)
 			return
-
 		}
 
 		//Everything is fine till now
 
-		emptyResponse := response.Response{
-			Data:       student,
-			Message:    "Student created",
-			StatusCode: http.StatusCreated,
-			IsError:    false,
-		}
+		emptyResponse := response.CreateResponse(student, http.StatusCreated, "Student created Succesfully", "DeveloperMessage", "UserMessage", false, "Err")
 
 		response.WriteResponse(w, emptyResponse)
 
