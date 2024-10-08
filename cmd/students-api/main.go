@@ -39,7 +39,7 @@ func main() {
 
 	router.HandleFunc("POST /api/students", student.New(storage))
 	router.HandleFunc("GET /api/students", student.GetAllStudents(storage))
-	router.HandleFunc("POST /api/student", student.GetStudentsByIdOrEmail(storage))
+	router.HandleFunc("POST /api/student", student.AddIsSafeMiddleware(student.GetStudentsByIdOrEmail(storage)))
 
 	//setup server
 

@@ -1,15 +1,17 @@
 package student
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"net/http"
+
 	"github.com/SudipSarkar1193/students-API-Go/internal/storage/mySql_Db"
 	"github.com/SudipSarkar1193/students-API-Go/internal/types"
 	"github.com/SudipSarkar1193/students-API-Go/internal/utils/response"
-	"io"
-	"net/http"
 
 	"github.com/go-playground/validator/v10"
 )
@@ -130,8 +132,13 @@ func GetStudentsByIdOrEmail(db *sql.DB) http.HandlerFunc {
 		}
 
 		
-
-		student , err := mySql_Db.GetStudentsByIdOrEmail(db,reqBody.Email,reqBody.Id)
+		var student types.Student
+		var err error
+		if reqBody.Email != nil {
+			student, err = mySql_Db.GetStudentsByIdOrEmail(db, *reqBody.Email, nil)
+		} else if reqBody.Id != nil {
+			student, err = mySql_Db.GetStudentsByIdOrEmail(db, nil, *reqBody.Id)
+		}
 		// fmt.Printf("reqBody.Id",*reqBody.Id," -> ",reqBody.Id)
 		if err!=nil{
 			if err == sql.ErrNoRows {
@@ -148,12 +155,57 @@ func GetStudentsByIdOrEmail(db *sql.DB) http.HandlerFunc {
 				http.Error(w,err.Error(),http.StatusBadRequest)
 			}
 		}
+		
+		if student.Id == 0 {
+			student.Id = -1 // Or any placeholder value indicating it wasn't fetched
+		}
+
+		isSafe := r.Context().Value("IsSafe").(string)
+
+		type respStruct struct {
+			IsSafe any `json:"isSafe,omitempty"`
+			types.Student
+		}
+
+		
+		
+
+		res := respStruct{
+			IsSafe:  isSafe,
+			Student: student, // This will copy all fields from the student to the response
+		}
+
+		
 
 
-		emptyResponse := response.CreateResponse(student, http.StatusOK, "Student data fetched Succesfully", "DeveloperMessage", "UserMessage")
+		emptyResponse := response.CreateResponse(res, http.StatusOK, "Student data fetched Succesfully", "DeveloperMessage", "UserMessage")
 
 		response.WriteResponse(w, emptyResponse)
 
 
 	}
 }
+
+
+func AddIsSafeMiddleware(next http.Handler) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Define logic to determine if the request is "safe"
+		
+
+		// Example: Check if a specific header exists
+		// if r.Header.Get("X-Safe-Request") == "true" {
+		// 	isSafe = true
+		// }
+
+		isSafeMsg := "Not Safe ! Na na ekkeibarei safe na !" // Default message
+		// Add isSafe to the request context
+		ctx := context.WithValue(r.Context(), "IsSafe",isSafeMsg)
+
+		// Create a new request with the updated context
+		r = r.WithContext(ctx)
+
+		// Continue to the next handler
+		next.ServeHTTP(w, r)
+	})
+}
+

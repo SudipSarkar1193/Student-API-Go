@@ -115,27 +115,26 @@ func (e Error) Error() string {
 	return string(e)
 }
 
-func GetStudentsByIdOrEmail(db *sql.DB,email interface{} , id *int) (interface{}, error) {
+func GetStudentsByIdOrEmail(db *sql.DB,email interface{} , id interface{}) (types.Student, error) {
 	
-	fmt.Println("=============ID=======id --",*id)
-	fmt.Println("===========STRING==========",email)
+	
 	
 	var student types.Student;
 
 	if email != nil {
-		query := "SELECT name,email FROM student.students WHERE email=?"
-		err := db.QueryRow(query,email).Scan(&student.Name,&student.Email)
+		query := "SELECT name,email,id FROM student.students WHERE email=?"
+		err := db.QueryRow(query,email).Scan(&student.Name,&student.Email,&student.Id)
 		if err != nil {
-            return nil,err
+            return types.Student{},err
         }
 		
 		return student,nil
 
 	}else if id!=nil {
-		query := "SELECT name,email FROM student.students WHERE id=?"
-		err := db.QueryRow(query,*id).Scan(&student.Name,&student.Email)
+		query := "SELECT name,email,id FROM student.students WHERE id=?"
+		err := db.QueryRow(query,id).Scan(&student.Name,&student.Email,&student.Id)
 		if err != nil {
-            return nil,err
+            return types.Student{},err
         }
 		
 		return student,nil
