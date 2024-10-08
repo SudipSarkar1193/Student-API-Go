@@ -1,17 +1,16 @@
 const fn = async () => {
     const student = {
-        id: Math.floor(Math.random() * 1000), // Random ID between 0 and 999
-        fullName: `Student ${Math.floor(Math.random() * 100)}`, // Random name
+        fullName: `Sudip ${Math.floor(Math.random() * 100)}`, // Random name
         email: `student${Math.floor(Math.random() * 100)}@example.com` // Random email
     };
     
     try {
-        const response = await fetch("http://127.0.0.1:5000/api/students", {
+        const response = await fetch("http://127.0.0.1:5000/api/student", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json" // Specify that we are sending JSON
             },
-            body: JSON.stringify(student), 
+            body: JSON.stringify({id :10}), 
         });
 
         // Check if the response is OK (status in the range 200-299)

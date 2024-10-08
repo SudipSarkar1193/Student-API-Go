@@ -23,7 +23,7 @@ func ValidateResponse(w http.ResponseWriter, errs interface{}) error {
 		fmt.Println("err.Value():", err.Value())
 		fmt.Println("err.Param():", err.Param())
 		fmt.Println()
-		fmt.Println() 
+		fmt.Println()
 
 		var errMsgs []string
 

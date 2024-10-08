@@ -1,23 +1,24 @@
 package student
 
 import (
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
-	"net/http"
-
+	"github.com/SudipSarkar1193/students-API-Go/internal/storage/mySql_Db"
 	"github.com/SudipSarkar1193/students-API-Go/internal/types"
 	"github.com/SudipSarkar1193/students-API-Go/internal/utils/response"
+	"io"
+	"net/http"
 
 	"github.com/go-playground/validator/v10"
 )
 
-func New() http.HandlerFunc {
+func New(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		if r.Method != http.MethodPost {
-			http.Error(w, "this HTTP method is not allowed !!!!!!!", http.StatusBadRequest)
+			http.Error(w, fmt.Sprintf("%v HTTP method is not allowed", r.Method), http.StatusBadRequest)
 			return
 		}
 
@@ -74,9 +75,85 @@ func New() http.HandlerFunc {
 
 		//Everything is fine till now
 
+		if err := mySql_Db.InsertStudent(db, student); err != nil {
+			http.Error(w, fmt.Sprintf("Database error : %v", err), http.StatusInternalServerError)
+			return
+		}
+
 		emptyResponse := response.CreateResponse(student, http.StatusCreated, "Student created Succesfully", "DeveloperMessage", "UserMessage", false, "Err")
 
 		response.WriteResponse(w, emptyResponse)
+
+	}
+}
+
+func GetAllStudents(db *sql.DB) http.HandlerFunc {
+
+	return func(w http.ResponseWriter, r *http.Request ) {
+
+		if r.Method != http.MethodGet {
+			http.Error(w, fmt.Sprintf("%v HTTP method is not allowed", r.Method), http.StatusBadRequest)
+			return
+		}
+
+		student, err := mySql_Db.GetAllStudents(db)
+		if err != nil {
+			http.Error(w, "Error fetching students data", http.StatusInternalServerError)
+			return
+		}
+
+		emptyResponse := response.CreateResponse(student, http.StatusOK, "Student data fetched Succesfully", "DeveloperMessage", "UserMessage")
+
+		response.WriteResponse(w, emptyResponse)
+
+	}
+}
+
+func GetStudentsByIdOrEmail(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, fmt.Sprintf("%v HTTP method is not allowed", r.Method), http.StatusBadRequest)
+			return
+		}
+
+		type idOrEmail struct {
+			Id    *int    `json:"id,omitempty"`
+			Email *string `json:"email,omitempty"`
+		}
+
+		var reqBody idOrEmail
+
+		// Decode the JSON request body
+		if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		
+
+		student , err := mySql_Db.GetStudentsByIdOrEmail(db,reqBody.Email,reqBody.Id)
+		// fmt.Printf("reqBody.Id",*reqBody.Id," -> ",reqBody.Id)
+		if err!=nil{
+			if err == sql.ErrNoRows {
+				if reqBody.Email!=nil {
+					http.Error(w,"No student found with the email",http.StatusNotFound)
+					return
+				} else if reqBody.Id!=nil{
+					http.Error(w,"No student found with the Id",http.StatusNotFound)
+					return
+				}else{
+					http.Error(w,"Error fetching data",http.StatusBadRequest)
+				}
+			}else{
+				http.Error(w,err.Error(),http.StatusBadRequest)
+			}
+		}
+
+
+		emptyResponse := response.CreateResponse(student, http.StatusOK, "Student data fetched Succesfully", "DeveloperMessage", "UserMessage")
+
+		response.WriteResponse(w, emptyResponse)
+
 
 	}
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 
 	"log"
 	"log/slog"
@@ -12,6 +13,7 @@ import (
 	"time"
 
 	"github.com/SudipSarkar1193/students-API-Go/internal/config"
+	"github.com/SudipSarkar1193/students-API-Go/internal/storage/mySql_Db"
 
 	"github.com/SudipSarkar1193/students-API-Go/internal/http/handlers"
 )
@@ -23,11 +25,21 @@ func main() {
 
 	//database setup
 
+	storage, err := mySql_Db.New(cfg)
+	if err != nil {
+		log.Fatal(err)
+	}
+	slog.Info("Storage initialized", slog.String("env", cfg.Env))
+
+	fmt.Println("storage : ", storage)
+
 	//setup router
 
 	router := http.NewServeMux()
 
-	router.HandleFunc("POST /api/students", student.New())
+	router.HandleFunc("POST /api/students", student.New(storage))
+	router.HandleFunc("GET /api/students", student.GetAllStudents(storage))
+	router.HandleFunc("POST /api/student", student.GetStudentsByIdOrEmail(storage))
 
 	//setup server
 
@@ -59,8 +71,7 @@ func main() {
 
 	defer cancel()
 
-	err := server.Shutdown(ctx)
-	if err != nil {
+	if err := server.Shutdown(ctx); err != nil {
 		slog.Error("Failed to shutdown server", slog.String("Error : ", err.Error()))
 	}
 
