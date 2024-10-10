@@ -54,8 +54,9 @@ func New(cfg *config.Config) (*sql.DB, error) {
 	createTableQuery := `
     CREATE TABLE IF NOT EXISTS students (
         id BIGINT AUTO_INCREMENT PRIMARY KEY,
-        name VARCHAR(255) NOT NULL,
-        email VARCHAR(255) NOT NULL UNIQUE
+        name VARCHAR(255) NOT NULL UNIQUE,
+        email VARCHAR(255) NOT NULL UNIQUE,
+        password VARCHAR(255) NOT NULL 
     );`
 
 	_, err = dbWithDB.Exec(createTableQuery)
@@ -65,15 +66,50 @@ func New(cfg *config.Config) (*sql.DB, error) {
 	fmt.Println("Table 'students' created or already exists.")
 
 	return dbWithDB, nil
+}
 
+func NewOnline(cfg *config.Config) (*sql.DB, error) {
+	// Data Source Name (DSN) - connecting to the provided database directly
+	dsn := cfg.Dsn + "?parseTime=true" // Your DSN should already have the database name
+
+	// Connect to the MySQL server using the provided database
+	db, err := sql.Open("mysql", dsn)
+	if err != nil {
+		return nil, err
+	}
+
+	// Ping the MySQL server to ensure the connection is established
+	if err := db.Ping(); err != nil {
+		return nil, err
+	}
+	fmt.Println("Connected to the database!")
+
+	// Create the students table if it doesn't exist
+	createTableQuery := `
+    CREATE TABLE IF NOT EXISTS students (
+        id BIGINT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(255) NOT NULL UNIQUE,
+        email VARCHAR(255) NOT NULL UNIQUE,
+		password VARCHAR(255) NOT NULL
+    );`
+
+	// Execute the query to create the table
+	_, err = db.Exec(createTableQuery)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println("Table 'students' created or already exists.")
+
+	// Return the connected database object
+	return db, nil
 }
 
 // Function to insert a new student into the database
-func InsertStudent(db *sql.DB, student types.Student) error {
-	query := "INSERT INTO students (name, email) VALUES (?, ?)"
+func InsertStudent(db *sql.DB, student *types.Student) error {
+	query := "INSERT INTO students (name, email, password) VALUES (?, ?,?)"
 
 	// Executing the query
-	result, err := db.Exec(query, student.Name, student.Email)
+	result, err := db.Exec(query, student.Name, student.Email, student.Password)
 	if err != nil {
 		return err
 	}
@@ -83,13 +119,16 @@ func InsertStudent(db *sql.DB, student types.Student) error {
 	if err != nil {
 		return err
 	}
+
+	student.Id = id
+
 	fmt.Printf("New student inserted with ID: %d\n", id)
 	return nil
 }
 
 // Function to insert a new student into the database
 func GetAllStudents(db *sql.DB) ([]types.Student, error) {
-	query := "SELECT * FROM student.students"
+	query := "SELECT * FROM students"
 	rows, err := db.Query(query)
 	if err != nil {
 		return nil, err
@@ -108,38 +147,42 @@ func GetAllStudents(db *sql.DB) ([]types.Student, error) {
 	return students, nil
 }
 
-
 type Error string
 
 func (e Error) Error() string {
 	return string(e)
 }
 
-func GetStudentsByIdOrEmail(db *sql.DB,email interface{} , id interface{}) (types.Student, error) {
-	
-	
-	
-	var student types.Student;
+func GetStudentsByIdOrEmail(db *sql.DB, email string, name string) (types.Student, error) {
+	var student types.Student
 
-	if email != nil {
-		query := "SELECT name,email,id FROM student.students WHERE email=?"
-		err := db.QueryRow(query,email).Scan(&student.Name,&student.Email,&student.Id)
+	// Check if email is provided and not empty
+	if email != "" {
+		query := "SELECT name, email, id,password FROM students WHERE email=?"
+		err := db.QueryRow(query, email).Scan(&student.Name, &student.Email, &student.Id, &student.Password)
 		if err != nil {
-            return types.Student{},err
-        }
-		
-		return student,nil
-
-	}else if id!=nil {
-		query := "SELECT name,email,id FROM student.students WHERE id=?"
-		err := db.QueryRow(query,id).Scan(&student.Name,&student.Email,&student.Id)
-		if err != nil {
-            return types.Student{},err
-        }
-		
-		return student,nil
-	}else{
-		
-			return types.Student{}, Error("Either ID or Email must be provided")
+			if err == sql.ErrNoRows {
+				return types.Student{}, fmt.Errorf("no student found with email: %v", email)
+			}
+			return types.Student{}, err
+		}
+		fmt.Printf("Found student with email: %v\n", student)
+		return student, nil
 	}
+
+	// Check if name is provided and not empty
+	if name != "" {
+		query := "SELECT name, email, id,password FROM students WHERE name=?"
+		err := db.QueryRow(query, name).Scan(&student.Name, &student.Email, &student.Id, &student.Password)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				return types.Student{}, fmt.Errorf("no student found with name: %v", name)
+			}
+			return types.Student{}, err
+		}
+		fmt.Printf("Found student with name: %v\n", student)
+		return student, nil
+	}
+
+	return types.Student{}, fmt.Errorf("either email or name must be provided")
 }

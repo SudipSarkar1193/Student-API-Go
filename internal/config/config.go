@@ -2,6 +2,7 @@ package config
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"os"
 
@@ -23,6 +24,7 @@ func MustLoad() *Config {
 	var configPath string
 
 	configPath = os.Getenv("CONFIG_PATH")
+	fmt.Println("configPath", configPath)
 
 	if configPath == "" {
 		flags := flag.String("config", "", "path to the config file")

@@ -14,20 +14,28 @@ import (
 
 	"github.com/SudipSarkar1193/students-API-Go/internal/config"
 	"github.com/SudipSarkar1193/students-API-Go/internal/storage/mySql_Db"
+	"github.com/joho/godotenv"
 
 	"github.com/SudipSarkar1193/students-API-Go/internal/http/handlers"
 )
 
 func main() {
+
+	//
+
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
 	// load config
 
 	cfg := config.MustLoad()
 
 	//database setup
 
-	storage, err := mySql_Db.New(cfg)
+	storage, err := mySql_Db.NewOnline(cfg)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("DB connecton ERROR : ", err)
 	}
 	slog.Info("Storage initialized", slog.String("env", cfg.Env))
 
@@ -37,9 +45,10 @@ func main() {
 
 	router := http.NewServeMux()
 
-	router.HandleFunc("POST /api/students", student.New(storage))
-	router.HandleFunc("GET /api/students", student.GetAllStudents(storage))
-	router.HandleFunc("POST /api/student", student.AddIsSafeMiddleware(student.GetStudentsByIdOrEmail(storage)))
+	router.HandleFunc("POST /api/students/new", student.New(storage))
+	router.HandleFunc("GET /api/students/all", student.GetAllStudents(storage))
+	router.HandleFunc("POST /api/students/login", student.Login(storage))
+	//router.HandleFunc("POST /api/student", student.AddIsSafeMiddleware(student.GetStudentsByIdOrEmail(storage)))
 
 	//setup server
 

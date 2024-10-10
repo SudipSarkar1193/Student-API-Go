@@ -1,14 +1,33 @@
 const fn = async () => {
-    
+    const student = {
+        fullName: `Riya ${Math.floor(Math.random() * 100)}`, // Random name
+        email: `student${Math.floor(Math.random() * 100)}@sudipss.com` ,// Random email
+        password : `Bile${Math.floor(Math.random() * 100)}` // Random email
+    };
     
     try {
-        const response = await fetch("http://127.0.0.1:5000/api/student", {
+        // const response = await fetch("http://127.0.0.1:5000/api/students/new", {
+        //     method: "POST",
+        //     headers: {
+        //         "Content-Type": "application/json" // Specify that we are sending JSON
+        //     },
+        //     body: JSON.stringify({fullName:"ss3",password:"Bile",email:"ss3@ss.com"}), 
+        //     //body: JSON.stringify(student), 
+        // });
+
+        const response = await fetch("http://127.0.0.1:5000/api/students/login", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json" // Specify that we are sending JSON
             },
-            body: JSON.stringify({id:8}), 
+            body: JSON.stringify({password:"Bile",fullName:"ss60"}), 
+            //body: JSON.stringify(student), 
         });
+
+        // const response = await fetch("http://127.0.0.1:5000/api/students/all", {
+        //     method: "GET",
+            
+        // });
 
         // Check if the response is OK (status in the range 200-299)
         if (!response.ok) {
